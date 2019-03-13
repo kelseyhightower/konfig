@@ -33,6 +33,8 @@ func main() {
 		data, err := ioutil.ReadFile(os.Getenv("CONFIG_FILE"))
 		if err != nil {
 			log.Println(err.Error())
+			http.Error(w, "", 500)
+			return
 		}
 
 		fmt.Fprintf(w, "Config File:\n")
