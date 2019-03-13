@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 
 	_ "github.com/kelseyhightower/konfig"
@@ -27,7 +28,8 @@ func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		for _, e := range os.Environ() {
-			fmt.Fprintf(w, "%s\n", e)
+			pair := strings.Split(e, "=")
+			w.Header().Set(pair[0], pair[1])
 		}
 
 		data, err := ioutil.ReadFile(os.Getenv("CONFIG_FILE"))
@@ -37,7 +39,6 @@ func main() {
 			return
 		}
 
-		fmt.Fprintf(w, "Config File:\n")
 		fmt.Fprintf(w, "  %s\n", data)
 	})
 

@@ -2,7 +2,7 @@
 cloud.google.com/go/compute/metadata
 # github.com/golang/protobuf v1.2.0
 github.com/golang/protobuf/proto
-# github.com/kelseyhightower/konfig v0.0.0-20190313170029-2ef79f62a25d
+# github.com/kelseyhightower/konfig v0.0.0-20190313173059-ff8405e6afc7
 github.com/kelseyhightower/konfig
 # golang.org/x/net v0.0.0-20190108225652-1e06a53dbb7e
 golang.org/x/net/context/ctxhttp
