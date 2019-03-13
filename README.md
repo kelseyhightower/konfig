@@ -17,7 +17,7 @@ gcloud container clusters create k0 \
 
 ```
 gcloud container clusters get-credentials k0 \
-  --zoneus-central1-a
+  --zone us-central1-a
 ```
 
 ```
