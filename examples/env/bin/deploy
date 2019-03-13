@@ -1,7 +1,7 @@
 #!/bin/bash
 
 gcloud alpha run deploy env \
-  --set-env-vars 'GOOGLE_CLOUD_REGION=us-central1,FOO=$SecretKeyRef:/projects/hightowerlabs/locations/us-central1/clusters/api/namespaces/default/secrets/app/keys/foo' \
+  --set-env-vars 'GOOGLE_CLOUD_REGION=us-central1,FOO=$SecretKeyRef:/projects/hightowerlabs/locations/us-central1/clusters/api/namespaces/default/secrets/app/keys/foo,CONFIG_FILE=$SecretKeyRef:/projects/hightowerlabs/locations/us-central1/clusters/api/namespaces/default/secrets/app/keys/config.json?tempFile=true' \
   --concurrency 50 \
   --image gcr.io/hightowerlabs/env:0.0.1 \
   --memory 2G \

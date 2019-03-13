@@ -25,7 +25,7 @@ type SecretReference struct {
 	Namespace string
 	Name      string
 	Key       string
-	MountPath string
+	TempFile  *os.File
 }
 
 type ConfigMapReference struct {
@@ -33,7 +33,7 @@ type ConfigMapReference struct {
 	Namespace string
 	Name      string
 	Key       string
-	MountPath string
+	TempFile  *os.File
 }
 
 type Secret struct {
@@ -140,28 +140,23 @@ func Parse() error {
 			return err
 		}
 
-		if secretReference.MountPath != "" {
-			f, err := os.Create(secretReference.MountPath)
+		if secretReference.TempFile != nil {
+			err = secretReference.TempFile.Chmod(600)
 			if err != nil {
 				return err
 			}
 
-			err = f.Chmod(600)
+			_, err = secretReference.TempFile.Write(envData)
 			if err != nil {
 				return err
 			}
 
-			_, err = f.Write(envData)
+			err = secretReference.TempFile.Close()
 			if err != nil {
 				return err
 			}
 
-			err = f.Close()
-			if err != nil {
-				return err
-			}
-
-			os.Setenv(env.Name, secretReference.MountPath)
+			os.Setenv(env.Name, secretReference.TempFile.Name())
 
 			continue
 		}
@@ -199,12 +194,20 @@ func ParseReference(r string) (*SecretReference, error) {
 
 	ss := strings.SplitN(u.Path, "/", 13)
 
+	var tempFile *os.File
+	if u.Query().Get("tempFile") != "" {
+		tempFile, err = ioutil.TempFile("", os.Getenv("K_SERVICE"))
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	sr := &SecretReference{
 		Cluster:   strings.Join(ss[0:7], "/"),
 		Namespace: ss[8],
 		Name:      ss[10],
 		Key:       ss[12],
-		MountPath: u.Query().Get("mountPath"),
+		TempFile:  tempFile,
 	}
 
 	return sr, nil

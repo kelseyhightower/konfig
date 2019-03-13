@@ -2,7 +2,7 @@
 cloud.google.com/go/compute/metadata
 # github.com/golang/protobuf v1.2.0
 github.com/golang/protobuf/proto
-# github.com/kelseyhightower/cloudrun v0.0.0-20190313084645-a81bce598178
+# github.com/kelseyhightower/cloudrun v0.0.0-20190313140712-8362e720d6ae
 github.com/kelseyhightower/cloudrun/kubernetes
 # golang.org/x/net v0.0.0-20190108225652-1e06a53dbb7e
 golang.org/x/net/context/ctxhttp

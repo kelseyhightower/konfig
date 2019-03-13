@@ -13,6 +13,7 @@ func TestParse(t *testing.T) {
 	}
 
 	fmt.Println(os.Getenv("FOO"))
+	fmt.Println(os.Getenv("CONFIG_FILE"))
 }
 
 func TestParseReference(t *testing.T) {
@@ -22,6 +23,4 @@ func TestParseReference(t *testing.T) {
 	if err != nil {
 		t.Errorf(err.Error())
 	}
-
-	fmt.Println(os.Getenv("FOO"))
 }
