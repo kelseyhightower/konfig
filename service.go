@@ -1,4 +1,4 @@
-package kubernetes
+package konfig
 
 type Service struct {
 	Spec ServiceSpec `json:"spec,omitempty"`

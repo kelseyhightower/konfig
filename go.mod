@@ -1,4 +1,4 @@
-module github.com/kelseyhightower/cloudrun
+module github.com/kelseyhightower/konfig
 
 go 1.12
 

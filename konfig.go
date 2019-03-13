@@ -1,4 +1,4 @@
-package kubernetes
+package konfig
 
 import (
 	"context"
@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -25,7 +26,7 @@ type SecretReference struct {
 	Namespace string
 	Name      string
 	Key       string
-	MountPath string
+	TempFile  *os.File
 }
 
 type ConfigMapReference struct {
@@ -33,7 +34,7 @@ type ConfigMapReference struct {
 	Namespace string
 	Name      string
 	Key       string
-	MountPath string
+	TempFile  *os.File
 }
 
 type Secret struct {
@@ -44,7 +45,11 @@ type Secret struct {
 
 const runEndpoint = "https://%s-run.googleapis.com/apis/serving.knative.dev/v1alpha1/%s"
 
-func Parse() error {
+func init() {
+	parse()
+}
+
+func parse() {
 	region := os.Getenv("GOOGLE_CLOUD_REGION")
 	service := serviceName()
 
@@ -53,28 +58,33 @@ func Parse() error {
 	httpClient, err := google.DefaultClient(oauth2.NoContext,
 		"https://www.googleapis.com/auth/cloud-platform")
 	if err != nil {
-		return err
+		log.Println(err)
+		return
 	}
 
 	containerService, err := container.New(httpClient)
 	if err != nil {
-		return err
+		log.Println(err)
+		return
 	}
 
 	resp, err := httpClient.Get(e)
 	if err != nil {
-		return err
+		log.Println(err)
+		return
 	}
 
 	data, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return err
+		log.Println(err)
+		return
 	}
 
 	var s Service
 	err = json.Unmarshal(data, &s)
 	if err != nil {
-		return err
+		log.Println(err)
+		return
 	}
 
 	for _, env := range s.Spec.RunLatest.Configuration.RevisionTemplate.Spec.Container.Env {
@@ -84,12 +94,14 @@ func Parse() error {
 
 		secretReference, err := ParseReference(env.Value)
 		if err != nil {
-			return err
+			log.Println(err)
+			return
 		}
 		cluster := strings.TrimPrefix(secretReference.Cluster, "/")
 		resp, err := containerService.Projects.Locations.Clusters.Get(cluster).Context(context.Background()).Do()
 		if err != nil {
-			return err
+			log.Println(err)
+			return
 		}
 
 		kUrl := fmt.Sprintf("https://%s/api/v1/namespaces/%s/secrets/%s/", resp.Endpoint,
@@ -97,7 +109,8 @@ func Parse() error {
 
 		caCert, err := base64.StdEncoding.DecodeString(resp.MasterAuth.ClusterCaCertificate)
 		if err != nil {
-			return err
+			log.Println(err)
+			return
 		}
 
 		roots := x509.NewCertPool()
@@ -113,7 +126,8 @@ func Parse() error {
 
 		ts, err := google.DefaultTokenSource(context.TODO(), "https://www.googleapis.com/auth/cloud-platform")
 		if err != nil {
-			return err
+			log.Println(err)
+			return
 		}
 
 		oauthTransport := &oauth2.Transport{
@@ -126,50 +140,49 @@ func Parse() error {
 		kResp, err := kubernetesClient.Get(kUrl)
 		data, err := ioutil.ReadAll(kResp.Body)
 		if err != nil {
-			return err
+			log.Println(err)
+			return
 		}
 
 		var secret Secret
 		err = json.Unmarshal(data, &secret)
 		if err != nil {
-			return err
+			log.Println(err)
+			return
 		}
 
 		envData, err := base64.StdEncoding.DecodeString(secret.Data[secretReference.Key])
 		if err != nil {
-			return err
+			log.Println(err)
+			return
 		}
 
-		if secretReference.MountPath != "" {
-			f, err := os.Create(secretReference.MountPath)
+		if secretReference.TempFile != nil {
+			err = secretReference.TempFile.Chmod(600)
 			if err != nil {
-				return err
+				log.Println(err)
+				return
 			}
 
-			err = f.Chmod(600)
+			_, err = secretReference.TempFile.Write(envData)
 			if err != nil {
-				return err
+				log.Println(err)
+				return
 			}
 
-			_, err = f.Write(envData)
+			err = secretReference.TempFile.Close()
 			if err != nil {
-				return err
+				log.Println(err)
+				return
 			}
 
-			err = f.Close()
-			if err != nil {
-				return err
-			}
-
-			os.Setenv(env.Name, secretReference.MountPath)
+			os.Setenv(env.Name, secretReference.TempFile.Name())
 
 			continue
 		}
 
 		os.Setenv(env.Name, string(envData))
 	}
-
-	return nil
 }
 
 func serviceName() string {
@@ -199,12 +212,20 @@ func ParseReference(r string) (*SecretReference, error) {
 
 	ss := strings.SplitN(u.Path, "/", 13)
 
+	var tempFile *os.File
+	if u.Query().Get("tempFile") != "" {
+		tempFile, err = ioutil.TempFile("", os.Getenv("K_SERVICE"))
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	sr := &SecretReference{
 		Cluster:   strings.Join(ss[0:7], "/"),
 		Namespace: ss[8],
 		Name:      ss[10],
 		Key:       ss[12],
-		MountPath: u.Query().Get("mountPath"),
+		TempFile:  tempFile,
 	}
 
 	return sr, nil

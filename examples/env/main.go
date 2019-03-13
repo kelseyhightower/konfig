@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net"
 	"net/http"
@@ -10,14 +11,10 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/kelseyhightower/cloudrun/kubernetes"
+	_ "github.com/kelseyhightower/konfig"
 )
 
 func main() {
-	if err := kubernetes.Parse(); err != nil {
-		log.Println(err)
-	}
-
 	log.Println("Starting env service ...")
 
 	httpListenPort := os.Getenv("PORT")
@@ -32,6 +29,14 @@ func main() {
 		for _, e := range os.Environ() {
 			fmt.Fprintf(w, "%s\n", e)
 		}
+
+		data, err := ioutil.ReadFile(os.Getenv("CONFIG_FILE"))
+		if err != nil {
+			log.Println(err.Error())
+		}
+
+		fmt.Fprintf(w, "Config File:\n")
+		fmt.Fprintf(w, "  %s\n", data)
 	})
 
 	s := &http.Server{
