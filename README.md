@@ -2,6 +2,23 @@
 
 ## Usage
 
+```
+gcloud container clusters create k0 \
+  --cluster-version latest \
+  --no-enable-basic-auth \
+  --no-enable-ip-alias \
+  --metadata disable-legacy-endpoints=true \
+  --no-issue-client-certificate \
+  --num-nodes 1 \
+  --machine-type g1-small \
+  --scopes gke-default \
+  --zone us-central1-a
+```
+
+```
+gcloud container clusters get-credentials k0 \
+  --zoneus-central1-a
+```
 
 ```
 cat > config.json <<EOF
@@ -21,8 +38,18 @@ kubectl create secret generic env \
 ```
 
 ```
+CLUSTER_ID=$(gcloud container clusters describe k0 \
+  --zone us-central1-a \
+  --format='value(selfLink)')
+```
+
+```
+CLUSTER_ID=${CLUSTER_ID#"https://container.googleapis.com/v1"}
+```
+
+```
 gcloud alpha run deploy env \
-  --set-env-vars 'GOOGLE_CLOUD_REGION=us-central1,FOO=$SecretKeyRef:/projects/hightowerlabs/locations/us-central1/clusters/api/namespaces/default/secrets/env/keys/foo,CONFIG_FILE=$SecretKeyRef:/projects/hightowerlabs/locations/us-central1/clusters/api/namespaces/default/secrets/env/keys/config.json?tempFile=true' \
+  --set-env-vars 'GOOGLE_CLOUD_REGION=us-central1,FOO=$SecretKeyRef:${CLUSTER_ID}/namespaces/default/secrets/env/keys/foo,CONFIG_FILE=$SecretKeyRef:${CLUSTER_ID}/namespaces/default/secrets/env/keys/config.json?tempFile=true' \
   --concurrency 50 \
   --image gcr.io/hightowerlabs/env:0.0.1 \
   --memory 2G \
@@ -34,7 +61,6 @@ gcloud alpha run services add-iam-policy-binding env \
   --member="allUsers" \
   --role="roles/run.invoker"
 ```
-
 
 ```
 ENV_SERVICE_URL=$(gcloud alpha run services describe env \
