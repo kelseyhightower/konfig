@@ -49,7 +49,7 @@ CLUSTER_ID=${CLUSTER_ID#"https://container.googleapis.com/v1"}
 
 ```
 gcloud alpha run deploy env \
-  --set-env-vars 'GOOGLE_CLOUD_REGION=us-central1,FOO=$SecretKeyRef:${CLUSTER_ID}/namespaces/default/secrets/env/keys/foo,CONFIG_FILE=$SecretKeyRef:${CLUSTER_ID}/namespaces/default/secrets/env/keys/config.json?tempFile=true' \
+  --set-env-vars "GOOGLE_CLOUD_REGION=us-central1,FOO=\$SecretKeyRef:${CLUSTER_ID}/namespaces/default/secrets/env/keys/foo,CONFIG_FILE=\$SecretKeyRef:${CLUSTER_ID}/namespaces/default/secrets/env/keys/config.json?tempFile=true" \
   --concurrency 50 \
   --image gcr.io/hightowerlabs/env:0.0.1 \
   --memory 2G \
