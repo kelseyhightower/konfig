@@ -1,0 +1,3 @@
+#!/bin/bash
+
+gcloud builds submit -t gcr.io/hightowerlabs/env:0.0.1 .

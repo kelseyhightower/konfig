@@ -140,31 +140,6 @@ func Parse() error {
 			return err
 		}
 
-		if secretReference.MountPath != "" {
-			f, err := os.Create(secretReference.MountPath)
-			if err != nil {
-				return err
-			}
-
-			err = f.Chmod(600)
-			if err != nil {
-				return err
-			}
-
-			_, err = f.Write(envData)
-			if err != nil {
-				return err
-			}
-
-			err = f.Close()
-			if err != nil {
-				return err
-			}
-
-			os.Setenv(env.Name, secretReference.MountPath)
-
-			continue
-		}
 
 		os.Setenv(env.Name, string(envData))
 	}
