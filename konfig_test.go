@@ -1,15 +1,13 @@
 package konfig
 
 import (
-	"os"
-	"fmt"
 	"testing"
 )
 
-func TestParseReference(t *testing.T) {
-	r := "$SecretKeyRef:/projects/hightowerlabs/locations/us-central1/clusters/api/namespaces/default/secrets/app/keys/foo?mountPath=/etc/app/foo"
+func TestParseSecretReference(t *testing.T) {
+	r := "$SecretKeyRef:/projects/hightowerlabs/locations/us-central1/clusters/api/namespaces/default/secrets/app/keys/foo"
 
-	_, err := ParseReference(r)
+	_, err := parseSecretReference(r)
 	if err != nil {
 		t.Errorf(err.Error())
 	}

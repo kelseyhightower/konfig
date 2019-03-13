@@ -51,6 +51,11 @@ func init() {
 
 func parse() {
 	region := os.Getenv("GOOGLE_CLOUD_REGION")
+	if region == "" {
+		log.Println("GOOGLE_CLOUD_REGION must be set and non-empthy")
+		return
+	}
+
 	service := serviceName()
 
 	e := fmt.Sprintf(runEndpoint, region, service)
@@ -88,11 +93,11 @@ func parse() {
 	}
 
 	for _, env := range s.Spec.RunLatest.Configuration.RevisionTemplate.Spec.Container.Env {
-		if !IsSecretReferenc(env.Value) {
+		if !isSecretReference(env.Value) {
 			continue
 		}
 
-		secretReference, err := ParseReference(env.Value)
+		secretReference, err := parseSecretReference(env.Value)
 		if err != nil {
 			log.Println(err)
 			return
@@ -191,14 +196,14 @@ func serviceName() string {
 	return fmt.Sprintf("namespaces/%s/services/%s", project, service)
 }
 
-func IsSecretReferenc(s string) bool {
+func isSecretReference(s string) bool {
 	if !strings.HasPrefix(s, "$SecretKeyRef:") {
 		return false
 	}
 	return true
 }
 
-func ParseReference(r string) (*SecretReference, error) {
+func parseSecretReference(r string) (*SecretReference, error) {
 	if !strings.HasPrefix(r, "$SecretKeyRef:") {
 		return nil, errors.New("missing secret key reference prefix")
 	}
