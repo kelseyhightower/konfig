@@ -14,7 +14,7 @@ import (
 )
 ```
 
-At deployment time references to Kubernetes secrets can be made when defining environment variables using the [reference syntax](docs/reference-syntax.md)
+At deployment time references to Kubernetes secrets can be made when defining environment variables using the [reference syntax](docs/reference-syntax.md).
 
 ## Tutorials
 
