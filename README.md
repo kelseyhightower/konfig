@@ -40,7 +40,7 @@ gcloud container clusters get-credentials k0 \
   --zone us-central1-a
 ```
 
-With `k0` GKE cluster in place it's time to create the secrets that will be referenced later in the tutorial.  
+With the `k0` GKE cluster in place it's time to create the secrets that will be referenced later in the tutorial.  
 
 ```
 cat > config.json <<EOF
@@ -92,10 +92,10 @@ gcloud alpha run deploy env \
   --image gcr.io/hightowerlabs/env:0.0.1 \
   --memory 2G \
   --region us-central1 \
-  --set-env-vars "GOOGLE_CLOUD_REGION=us-central1,FOO=\$SecretKeyRef:${CLUSTER_ID}/namespaces/default/secrets/env/keys/foo,CONFIG_FILE=\$SecretKeyRef:${CLUSTER_ID}/namespaces/default/secrets/env/keys/config.json?tempFile=true"
+  --set-env-vars "FOO=\$SecretKeyRef:${CLUSTER_ID}/namespaces/default/secrets/env/keys/foo,CONFIG_FILE=\$SecretKeyRef:${CLUSTER_ID}/namespaces/default/secrets/env/keys/config.json?tempFile=true"
 ```
 
-Retreive and store the `env` service HTTP endpoint:
+Retreive the `env` service HTTP endpoint:
 
 ```
 ENV_SERVICE_URL=$(gcloud alpha run services describe env \
