@@ -31,6 +31,8 @@ $SecretKeyRef:/projects/hightowerlabs/zones/us-central1-a/clusters/k0/namespaces
 
 ## Tutorials
 
+A GKE cluster is used to store configmaps and secrets referenced by Cloud Run and Cloud Function workloads. Ideally an existing cluster can be used. For the purpose of this tutorial create the smallest GKE cluster possible in the `us-central1-a` zone:
+
 ```
 gcloud container clusters create k0 \
   --cluster-version latest \
@@ -44,10 +46,16 @@ gcloud container clusters create k0 \
   --zone us-central1-a
 ```
 
+Download the credentials for the `k0` cluster:
+
 ```
 gcloud container clusters get-credentials k0 \
   --zone us-central1-a
 ```
+
+### Create the `env` secrets
+
+With `k0` GKE cluster in place it's time to create the secrets that will be referenced later in the tutorial.  
 
 ```
 cat > config.json <<EOF
@@ -60,11 +68,17 @@ cat > config.json <<EOF
 EOF
 ```
 
+Create the `env` secret with two keys `foo` and `config.json` which holds the contents of the configuration file created in the previous step:
+
 ```
 kubectl create secret generic env \
   --from-literal foo=bar \
   --from-file config.json
 ```
+
+At this point the `env` secret can be referenced from either Cloud Run or Cloud Functions using the `konfig` library.
+
+### Cloud Run Tutorial
 
 ```
 CLUSTER_ID=$(gcloud container clusters describe k0 \
@@ -75,8 +89,6 @@ CLUSTER_ID=$(gcloud container clusters describe k0 \
 ```
 CLUSTER_ID=${CLUSTER_ID#"https://container.googleapis.com/v1"}
 ```
-
-### Cloud Run
 
 ```
 gcloud alpha run deploy env \
@@ -127,17 +139,17 @@ alt-svc: quic=":443"; ma=2592000; v="46,44,43,39"
 }
 ```
 
-### Cloud Functions
+### Cloud Functions Tutorial
 
-```
-PROJECT_ID=$(gcloud config get-value core/project)
-```
-
-Create the `konfig` service account with the following IAM roles:
+konfig pulls referenced secrets and configmaps from GKE clusters using the GCP service account assigned to a Cloud Function. Create the `konfig` service account with the following IAM roles:
 
 * roles/iam.serviceAccountTokenCreator
 * roles/cloudfunctions.viewer
 * roles/container.viewer
+
+```
+PROJECT_ID=$(gcloud config get-value core/project)
+```
 
 ```
 SERVICE_ACCOUNT_NAME="konfig"
