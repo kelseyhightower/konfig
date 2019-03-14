@@ -149,6 +149,13 @@ func parse() {
 			return
 		}
 
+		defer kResp.Body.Close()
+
+		if kResp.StatusCode != 200 {
+			log.Printf("kconfig: unable to get secret %s status code %v", k, kResp.StatusCode)
+			continue
+		}
+
 		var secret Secret
 		err = json.Unmarshal(data, &secret)
 		if err != nil {
