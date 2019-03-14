@@ -40,8 +40,6 @@ gcloud container clusters get-credentials k0 \
   --zone us-central1-a
 ```
 
-### Create the `env` secrets
-
 With `k0` GKE cluster in place it's time to create the secrets that will be referenced later in the tutorial.  
 
 ```
