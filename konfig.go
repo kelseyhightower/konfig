@@ -152,7 +152,7 @@ func parse() {
 		defer kResp.Body.Close()
 
 		if kResp.StatusCode != 200 {
-			log.Printf("kconfig: unable to get secret %s status code %v", k, kResp.StatusCode)
+			log.Printf("kconfig: unable to get secret %s from Kubernetes status code %v", k, kResp.StatusCode)
 			continue
 		}
 
