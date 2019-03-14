@@ -1,6 +1,35 @@
 # konfig
 
+konfig enables Serverless workloads running on GCP to reference Kubernetes secrets stored in GKE clusters at runtime. konfig currently supports Cloud Run and Cloud Functions workloads.
+
 ## Usage
+
+konfig is enabled via a single import statement:
+
+```
+import (
+    ...
+
+    _ "github.com/kelseyhightower/konfig"
+)
+```
+
+At deployment time references to Kubernetes secrets can be made when defining environment variables using the following syntax with a slight variance between regional and zonal GKE clusters:
+
+```
+$SecretKeyRef:{name=projects/*/locations/*/clusters/*}/{namespaces/*/secrets/*/keys/*}
+```
+```
+$SecretKeyRef:{name=projects/*/zones/*/clusters/*}/{namespaces/*/secrets/*/keys/*}
+```
+
+To reference the `foo` key in the `env` secret in the `default` namespace in the `k0` GKE cluster running in the `us-central1-a` zone:
+
+```
+$SecretKeyRef:/projects/hightowerlabs/zones/us-central1-a/clusters/k0/namespaces/default/secrets/env/keys/foo
+```
+
+## Tutorials
 
 ```
 gcloud container clusters create k0 \
@@ -46,6 +75,8 @@ CLUSTER_ID=$(gcloud container clusters describe k0 \
 ```
 CLUSTER_ID=${CLUSTER_ID#"https://container.googleapis.com/v1"}
 ```
+
+### Cloud Run
 
 ```
 gcloud alpha run deploy env \
@@ -100,3 +131,7 @@ alt-svc: quic=":443"; ma=2592000; v="46,44,43,39"
   }
 }
 ```
+
+### Cloud Functions
+
+WIP
