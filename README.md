@@ -65,15 +65,25 @@ At this point the `env` secret can be referenced from either Cloud Run or Cloud 
 
 ### Cloud Run Tutorial
 
+In this section Cloud Run will be used to deploy the `gcr.io/hightowerlabs/env:0.0.1` container image which responds to HTTP requests with the contents of the `FOO` and `CONFIG_FILE` environment variables, which reference the `env` secret created in the previous section.
+
+A GKE cluster ID is required when referencing secrets. Extract the cluster ID for the `k0` GKE cluster:
+
 ```
 CLUSTER_ID=$(gcloud container clusters describe k0 \
   --zone us-central1-a \
   --format='value(selfLink)')
 ```
 
+Strip the `https://container.googleapis.com/v1` from the previous response and store the results:
+
 ```
 CLUSTER_ID=${CLUSTER_ID#"https://container.googleapis.com/v1"}
 ```
+
+> The CLUSTER_ID env var should hold the fully qualified path to the k0 cluster. Assuming `hightowerlabs` as the project ID the value would be `/projects/hightowerlabs/zones/us-central1-a/clusters/k0`.
+
+Create the `env` Cloud Run service and set the `FOO` and `CONFIG_FILE` env vars to reference the `env` secrets in the `k0` GKE cluster:
 
 ```
 gcloud alpha run deploy env \
@@ -85,12 +95,16 @@ gcloud alpha run deploy env \
   --set-env-vars "GOOGLE_CLOUD_REGION=us-central1,FOO=\$SecretKeyRef:${CLUSTER_ID}/namespaces/default/secrets/env/keys/foo,CONFIG_FILE=\$SecretKeyRef:${CLUSTER_ID}/namespaces/default/secrets/env/keys/config.json?tempFile=true"
 ```
 
+Retreive and store the `env` service HTTP endpoint:
+
 ```
 ENV_SERVICE_URL=$(gcloud alpha run services describe env \
   --namespace hightowerlabs \
   --region us-central1 \
   --format='value(status.domain)')
 ```
+
+Make an HTTP request to the `env` service:
 
 ```
 curl -i $ENV_SERVICE_URL
