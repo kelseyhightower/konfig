@@ -1,0 +1,8 @@
+!#/bin/bash
+
+PROJECT_ID=$(gcloud config get-value core/project)
+SERVICE_ACCOUNT_EMAIL="konfig@${PROJECT_ID}.iam.gserviceaccount.com"
+
+kubectl create rolebinding konfig \
+  --clusterrole edit \
+  --user $SERVICE_ACCOUNT_EMAIL

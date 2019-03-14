@@ -2,7 +2,7 @@
 cloud.google.com/go/compute/metadata
 # github.com/golang/protobuf v1.2.0
 github.com/golang/protobuf/proto
-# github.com/kelseyhightower/konfig v0.0.0-20190313193141-d6b448113689
+# github.com/kelseyhightower/konfig v0.0.0-20190314031252-05325e8eafa9
 github.com/kelseyhightower/konfig
 # golang.org/x/net v0.0.0-20190108225652-1e06a53dbb7e
 golang.org/x/net/context/ctxhttp
@@ -14,6 +14,7 @@ golang.org/x/oauth2/internal
 golang.org/x/oauth2/jws
 golang.org/x/oauth2/jwt
 # google.golang.org/api v0.1.0
+google.golang.org/api/cloudfunctions/v1
 google.golang.org/api/container/v1
 google.golang.org/api/gensupport
 google.golang.org/api/googleapi
