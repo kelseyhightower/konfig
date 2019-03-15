@@ -27,7 +27,15 @@ References to Kubernetes configmaps and secrets can be made when defining Cloud 
 
 ## Tutorials
 
-A GKE cluster is used to store configmaps and secrets referenced by Cloud Run and Cloud Function workloads. Ideally an existing cluster can be used. For the purpose of this tutorial create the smallest GKE cluster possible in the `us-central1-a` zone:
+A GKE cluster is used to store configmaps and secrets referenced by Cloud Run and Cloud Function workloads. Ideally an existing cluster can be used.
+
+Enable the GKE API for the project (this only needs to be done once per project):
+
+```
+gcloud services enable container.googleapis.com
+```
+
+For the purpose of this tutorial create the smallest GKE cluster possible in the `us-central1-a` zone:
 
 ```
 gcloud container clusters create k0 \
@@ -213,9 +221,8 @@ cd examples/cloudfunctions/env/
 ```
 
 ```
-gcloud alpha functions deploy env \
+gcloud functions deploy env \
   --entry-point F \
-  --max-instances 10 \
   --memory 128MB \
   --region us-central1 \
   --runtime go111 \
