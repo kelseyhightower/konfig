@@ -7,7 +7,7 @@ import (
 func TestParseSecretReference(t *testing.T) {
 	r := "$SecretKeyRef:/projects/hightowerlabs/locations/us-central1/clusters/api/namespaces/default/secrets/app/keys/foo"
 
-	_, err := parseSecretReference(r)
+	_, err := parseReference(r)
 	if err != nil {
 		t.Errorf(err.Error())
 	}
