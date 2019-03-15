@@ -14,6 +14,15 @@ import (
 )
 ```
 
+## How Does it Work
+
+The side effect of importing the `konfig` library will cause konfig to:
+
+* call the Cloud Run or Cloud Functions API to get a list of env vars to process. We avoid scanning the running environment as any library can set env vars before konfig runs.
+* retrieve the GKE endpoint based on the secret or configmap reference
+* retrieve configmap and secret keys from the GKE cluster using the service account provided to the Cloud Run or Cloud Function instance.
+* substitute the reference string with the value of the configmap or secret key.
+
 References to Kubernetes configmaps and secrets can be made when defining Cloud Run and Cloud Functions environment variables using the [reference syntax](docs/reference-syntax.md).
 
 ## Tutorials
@@ -104,7 +113,7 @@ gcloud alpha run deploy env \
 
 > The `CONFIG_FILE` env var reference uses the `tempFile` option to write the contents of the `config.json` secret key to a temp file. The `CONFIG_FILE` env var will hold the path to the temp file which can be read during normal program execution.
 
-Retreive the `env` service HTTP endpoint:
+Retrieve the `env` service HTTP endpoint:
 
 ```
 ENV_SERVICE_URL=$(gcloud alpha run services describe env \

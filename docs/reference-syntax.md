@@ -91,7 +91,7 @@ After processing the secret reference, the value of the `CONFIG_FILE` env var wo
 CONFIG_FILE=/tmp/813067742
 ```
 
-The temp file can be read during normal program exection:
+The temp file can be read during normal program execution:
 
 ```
 cat $CONFIG_FILE
