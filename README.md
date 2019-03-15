@@ -192,6 +192,8 @@ Enable the `konfig` GCP service account to access the `env` secret in the `k0` K
 SERVICE_ACCOUNT_EMAIL="konfig@${PROJECT_ID}.iam.gserviceaccount.com"
 ```
 
+Create the `konfig` role in the `k0` GKE cluster:
+
 ```
 kubectl create role konfig \
   --verb get \
@@ -200,11 +202,17 @@ kubectl create role konfig \
   --resource-name env
 ```
 
+Bind the `konfig` GCP service account and `konfig` role:
+
 ```
 kubectl create rolebinding konfig \
   --role konfig \
   --user ${SERVICE_ACCOUNT_EMAIL}
 ```
+
+At this point the `konfig` GCP service account has access to the configmap and secret named `env` in the default namespace in the `k0` GKE cluster.
+
+> The `konfig` Kubernetes role limits the `konfig` GCP service to the defined `env` secret and configmap in a single namespace. Access to additional secrets and configmaps will require additional permissions.
 
 Deploy the `env` function.
 
@@ -225,16 +233,22 @@ gcloud alpha functions deploy env \
   --trigger-http
 ```
 
+Enable unauthenticated access to the `env` function HTTP endpoint:
+
 ```
 gcloud alpha functions add-iam-policy-binding env \
   --member allUsers \
   --role roles/cloudfunctions.invoker
 ```
 
+Retrieve the HTTPS trigger URL:
+
 ```
 HTTPS_TRIGGER_URL=$(gcloud beta functions describe env \
   --format 'value(httpsTrigger.url)')
 ```
+
+Make an HTTP request to the `env` function:
 
 ```
 curl $HTTPS_TRIGGER_URL
