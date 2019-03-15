@@ -12,10 +12,12 @@ github.com/golang/protobuf v1.2.0 h1:P3YflyNX/ehuJFLhxviNdFxQPkGK5cDcApsge1SqnvM
 github.com/golang/protobuf v1.2.0/go.mod h1:6lQm79b+lXiMfvg/cZm0SGofjICqVBUtrP5yJMmIC1U=
 github.com/google/go-cmp v0.2.0/go.mod h1:oXzfMopK8JAjlY9xF4vHSVASa0yLyX7SntLO5aqRK0M=
 github.com/grpc-ecosystem/grpc-gateway v1.5.0/go.mod h1:RSKVYQBd5MCa4OVpNdGskqpgL2+G+NZTnrVHpWWfpdw=
-github.com/kelseyhightower/konfig v0.0.0-20190314044002-61e0561a84de h1:wanbY7JYhoX/aCTXTQxVAqxeAYLRouHmfihgN57fQ98=
-github.com/kelseyhightower/konfig v0.0.0-20190314044002-61e0561a84de/go.mod h1:x93cDV8fARk1umtKVGgErABZR6v+sWCJqKikv5irEK8=
-github.com/kelseyhightower/konfig v0.0.0-20190314044648-55ea6600e476 h1:jUUC3+/jg2+Nn4VCcHxzzylk68QTTNoXPEcqdKAfsGI=
-github.com/kelseyhightower/konfig v0.0.0-20190314044648-55ea6600e476/go.mod h1:x93cDV8fARk1umtKVGgErABZR6v+sWCJqKikv5irEK8=
+github.com/kelseyhightower/konfig v0.0.0-20190315070146-1e56031b3466 h1:jjK3/Oi5T4f4d4jYkfoNZlrah6O7TGXtw5+SnsfZiiE=
+github.com/kelseyhightower/konfig v0.0.0-20190315070146-1e56031b3466/go.mod h1:x93cDV8fARk1umtKVGgErABZR6v+sWCJqKikv5irEK8=
+github.com/kelseyhightower/konfig v0.0.0-20190315071445-9daed57965fe h1:LdfyC8Z4hGOV+u9fb92wWdlwPZ8Jl+ajGVGXWEVCERc=
+github.com/kelseyhightower/konfig v0.0.0-20190315071445-9daed57965fe/go.mod h1:x93cDV8fARk1umtKVGgErABZR6v+sWCJqKikv5irEK8=
+github.com/kelseyhightower/konfig v0.0.0-20190315072157-6f0564fa8745 h1:hgJI+Gxf9UsJFksf/nphzw9UG1pA1dUUcgDd8r29m6Y=
+github.com/kelseyhightower/konfig v0.0.0-20190315072157-6f0564fa8745/go.mod h1:x93cDV8fARk1umtKVGgErABZR6v+sWCJqKikv5irEK8=
 github.com/kisielk/gotool v1.0.0/go.mod h1:XhKaO+MFFWcvkIS/tQcRk01m1F5IRFswLeQ+oQHNcck=
 github.com/matttproud/golang_protobuf_extensions v1.0.1/go.mod h1:D8He9yQNgCq6Z5Ld7szi9bcBfOoFv/3dc6xSMkL2PC0=
 github.com/openzipkin/zipkin-go v0.1.1/go.mod h1:NtoC/o8u3JlF1lSlyPNswIbeQH9bJTmOf0Erfk+hxe8=

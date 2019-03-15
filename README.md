@@ -92,7 +92,7 @@ gcloud alpha run deploy env \
   --image gcr.io/hightowerlabs/env:0.0.1 \
   --memory 2G \
   --region us-central1 \
-  --set-env-vars "FOO=\$SecretKeyRef:${CLUSTER_ID}/namespaces/default/secrets/env/keys/foo,CONFIG_FILE=\$SecretKeyRef:${CLUSTER_ID}/namespaces/default/secrets/env/keys/config.json?tempFile=true"
+  --set-env-vars "FOO=\$SecretKeyRef:${CLUSTER_ID}/namespaces/default/secrets/env/keys/foo,CONFIG_FILE=\$SecretKeyRef:${CLUSTER_ID}/namespaces/default/secrets/env/keys/config.json?tempFile=true,ENVIRONMENT=\$ConfigMapKeyRef:${CLUSTER_ID}/namespaces/default/configmaps/env/keys/environment"
 ```
 
 Retreive the `env` service HTTP endpoint:
@@ -191,6 +191,7 @@ SERVICE_ACCOUNT_EMAIL="konfig@${PROJECT_ID}.iam.gserviceaccount.com"
 kubectl create role konfig \
   --verb get \
   --resource secrets \
+  --resource configmaps \
   --resource-name env
 ```
 

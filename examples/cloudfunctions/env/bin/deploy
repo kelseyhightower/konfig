@@ -12,7 +12,7 @@ CLUSTER_ID=${CLUSTER_ID#"https://container.googleapis.com/v1"}
 gcloud alpha functions deploy env \
   --entry-point F \
   --service-account $SERVICE_ACCOUNT_EMAIL \
-  --set-env-vars "FOO=\$SecretKeyRef:${CLUSTER_ID}/namespaces/default/secrets/env/keys/foo,CONFIG_FILE=\$SecretKeyRef:${CLUSTER_ID}/namespaces/default/secrets/env/keys/config.json?tempFile=true" \
+  --set-env-vars "FOO=\$SecretKeyRef:${CLUSTER_ID}/namespaces/default/secrets/env/keys/foo,CONFIG_FILE=\$SecretKeyRef:${CLUSTER_ID}/namespaces/default/secrets/env/keys/config.json?tempFile=true,ENVIRONMENT=\$ConfigMapKeyRef:${CLUSTER_ID}/namespaces/default/configmaps/env/keys/environment" \
   --max-instances 10 \
   --memory 128MB \
   --region us-central1 \

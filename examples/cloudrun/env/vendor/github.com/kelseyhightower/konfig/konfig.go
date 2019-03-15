@@ -1,3 +1,7 @@
+// Copyright 2019 The Konfig Authors. All Rights Reserved.
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+
 package konfig
 
 import (
@@ -18,23 +22,17 @@ import (
 
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
+	"google.golang.org/api/cloudfunctions/v1"
 	"google.golang.org/api/container/v1"
 )
 
-type SecretReference struct {
+type Reference struct {
 	Cluster   string
 	Namespace string
 	Name      string
 	Key       string
 	TempFile  *os.File
-}
-
-type ConfigMapReference struct {
-	Cluster   string
-	Namespace string
-	Name      string
-	Key       string
-	TempFile  *os.File
+	Kind      string
 }
 
 type Secret struct {
@@ -43,23 +41,44 @@ type Secret struct {
 	Kind       string            `json:"kind"`
 }
 
-const runEndpoint = "https://%s-run.googleapis.com/apis/serving.knative.dev/v1alpha1/%s"
+type ConfigMap struct {
+	ApiVersion string            `json:"apiVersion"`
+	Data       map[string]string `json:"data"`
+	Kind       string            `json:"kind"`
+}
+
+type RuntimeEnvironment string
+
+const (
+	CloudFunctionsRuntime = RuntimeEnvironment("cloudfunctions")
+	CloudRunRuntime       = RuntimeEnvironment("cloudrun")
+	UnknownRuntime        = RuntimeEnvironment("unknown")
+)
+
+const runEndpoint = "https://us-central1-run.googleapis.com/apis/serving.knative.dev/v1alpha1/%s"
 
 func init() {
 	parse()
 }
 
 func parse() {
-	region := os.Getenv("GOOGLE_CLOUD_REGION")
-	if region == "" {
-		log.Println("GOOGLE_CLOUD_REGION must be set and non-empthy")
+	runtimeEnvironment := detectRuntimeEnvironment()
+	if runtimeEnvironment == UnknownRuntime {
+		log.Println("konfig: unknown runtime environment")
 		return
 	}
 
-	service := serviceName()
+	environmentVariables, err := getEnvironmentVariables(runtimeEnvironment)
+	if err != nil {
+		log.Println(err)
+		return
+	}
 
-	e := fmt.Sprintf(runEndpoint, region, service)
+	if len(environmentVariables) == 0 {
+		return
+	}
 
+	// Setup the GKE HTTP client.
 	httpClient, err := google.DefaultClient(oauth2.NoContext,
 		"https://www.googleapis.com/auth/cloud-platform")
 	if err != nil {
@@ -73,49 +92,33 @@ func parse() {
 		return
 	}
 
-	resp, err := httpClient.Get(e)
-	if err != nil {
-		log.Println(err)
-		return
-	}
-
-	data, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		log.Println(err)
-		return
-	}
-
-	var s Service
-	err = json.Unmarshal(data, &s)
-	if err != nil {
-		log.Println(err)
-		return
-	}
-
-	for _, env := range s.Spec.RunLatest.Configuration.RevisionTemplate.Spec.Container.Env {
-		if !isSecretReference(env.Value) {
+	// Process the environment variable with secret references.
+	for k, v := range environmentVariables {
+		if !isReference(v) {
 			continue
 		}
 
-		secretReference, err := parseSecretReference(env.Value)
+		reference, err := parseReference(v)
 		if err != nil {
 			log.Println(err)
-			return
-		}
-		cluster := strings.TrimPrefix(secretReference.Cluster, "/")
-		resp, err := containerService.Projects.Locations.Clusters.Get(cluster).Context(context.Background()).Do()
-		if err != nil {
-			log.Println(err)
-			return
+			continue
 		}
 
-		kUrl := fmt.Sprintf("https://%s/api/v1/namespaces/%s/secrets/%s/", resp.Endpoint,
-			secretReference.Namespace, secretReference.Name)
+		clusterID := strings.TrimPrefix(reference.Cluster, "/")
 
-		caCert, err := base64.StdEncoding.DecodeString(resp.MasterAuth.ClusterCaCertificate)
+		cluster, err := containerService.Projects.Locations.Clusters.Get(clusterID).Context(context.Background()).Do()
 		if err != nil {
 			log.Println(err)
-			return
+			continue
+		}
+
+		resourceURL := fmt.Sprintf("https://%s/api/v1/namespaces/%s/%ss/%s/", cluster.Endpoint,
+			reference.Namespace, reference.Kind, reference.Name)
+
+		caCert, err := base64.StdEncoding.DecodeString(cluster.MasterAuth.ClusterCaCertificate)
+		if err != nil {
+			log.Println(err)
+			continue
 		}
 
 		roots := x509.NewCertPool()
@@ -132,7 +135,7 @@ func parse() {
 		ts, err := google.DefaultTokenSource(context.TODO(), "https://www.googleapis.com/auth/cloud-platform")
 		if err != nil {
 			log.Println(err)
-			return
+			continue
 		}
 
 		oauthTransport := &oauth2.Transport{
@@ -142,52 +145,157 @@ func parse() {
 
 		kubernetesClient := &http.Client{Transport: oauthTransport}
 
-		kResp, err := kubernetesClient.Get(kUrl)
-		data, err := ioutil.ReadAll(kResp.Body)
+		resp, err := kubernetesClient.Get(resourceURL)
 		if err != nil {
 			log.Println(err)
-			return
+			continue
 		}
 
-		var secret Secret
-		err = json.Unmarshal(data, &secret)
+		data, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
 			log.Println(err)
-			return
+			continue
 		}
 
-		envData, err := base64.StdEncoding.DecodeString(secret.Data[secretReference.Key])
-		if err != nil {
-			log.Println(err)
-			return
+		defer resp.Body.Close()
+
+		if resp.StatusCode != 200 {
+			log.Printf("kconfig: unable to get %s %s from Kubernetes status code %v",
+				k, reference.Kind, resp.StatusCode)
+			continue
 		}
 
-		if secretReference.TempFile != nil {
-			err = secretReference.TempFile.Chmod(600)
+		var envData string
+
+		if reference.Kind == "secret" {
+			var secret Secret
+			err := json.Unmarshal(data, &secret)
 			if err != nil {
 				log.Println(err)
-				return
+				continue
 			}
 
-			_, err = secretReference.TempFile.Write(envData)
+			d, err := base64.StdEncoding.DecodeString(secret.Data[reference.Key])
 			if err != nil {
 				log.Println(err)
-				return
+				continue
 			}
+			envData = string(d)
+		}
 
-			err = secretReference.TempFile.Close()
+		if reference.Kind == "configmap" {
+			var configmap ConfigMap
+
+			err := json.Unmarshal(data, &configmap)
 			if err != nil {
 				log.Println(err)
-				return
+				continue
 			}
 
-			os.Setenv(env.Name, secretReference.TempFile.Name())
+			envData = configmap.Data[reference.Key]
+		}
+
+		if reference.TempFile != nil {
+			err = reference.TempFile.Chmod(600)
+			if err != nil {
+				log.Println(err)
+				continue
+			}
+
+			_, err = reference.TempFile.WriteString(envData)
+			if err != nil {
+				log.Println(err)
+				continue
+			}
+
+			err = reference.TempFile.Close()
+			if err != nil {
+				log.Println(err)
+				continue
+			}
+
+			os.Setenv(k, reference.TempFile.Name())
 
 			continue
 		}
 
-		os.Setenv(env.Name, string(envData))
+		os.Setenv(k, string(envData))
 	}
+}
+
+func detectRuntimeEnvironment() RuntimeEnvironment {
+	if os.Getenv("FUNCTION_NAME") != "" {
+		return CloudFunctionsRuntime
+	}
+
+	if os.Getenv("K_SERVICE") != "" {
+		return CloudRunRuntime
+	}
+
+	return UnknownRuntime
+}
+
+func getEnvironmentVariables(e RuntimeEnvironment) (map[string]string, error) {
+	switch e {
+	case CloudRunRuntime:
+		return getCloudRunEnvironmentVariables()
+	case CloudFunctionsRuntime:
+		return getCloudFunctionsEnvironmentVariables()
+	}
+
+	return nil, errors.New("unknown runtime environment")
+}
+
+func getCloudFunctionsEnvironmentVariables() (map[string]string, error) {
+	oauthHttpClient, err := google.DefaultClient(oauth2.NoContext,
+		"https://www.googleapis.com/auth/cloud-platform")
+	if err != nil {
+		return nil, err
+	}
+
+	client, err := cloudfunctions.New(oauthHttpClient)
+	if err != nil {
+		return nil, err
+	}
+
+	cloudFunction, err := client.Projects.Locations.Functions.Get(functionName()).Do()
+	if err != nil {
+		return nil, err
+	}
+
+	return cloudFunction.EnvironmentVariables, nil
+}
+
+func getCloudRunEnvironmentVariables() (map[string]string, error) {
+	httpClient, err := google.DefaultClient(oauth2.NoContext,
+		"https://www.googleapis.com/auth/cloud-platform")
+	if err != nil {
+		return nil, err
+	}
+
+	runEndPointUrl := fmt.Sprintf(runEndpoint, serviceName())
+
+	resp, err := httpClient.Get(runEndPointUrl)
+	if err != nil {
+		return nil, err
+	}
+
+	data, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	var s Service
+	if err := json.Unmarshal(data, &s); err != nil {
+		return nil, err
+	}
+
+	environmentVariables := make(map[string]string)
+	for _, env := range s.Spec.RunLatest.Configuration.RevisionTemplate.Spec.Container.Env {
+		environmentVariables[env.Name] = env.Value
+	}
+
+	return environmentVariables, nil
 }
 
 func serviceName() string {
@@ -196,19 +304,34 @@ func serviceName() string {
 	return fmt.Sprintf("namespaces/%s/services/%s", project, service)
 }
 
-func isSecretReference(s string) bool {
-	if !strings.HasPrefix(s, "$SecretKeyRef:") {
-		return false
-	}
-	return true
+func functionName() string {
+	name := os.Getenv("FUNCTION_NAME")
+	project := os.Getenv("GCP_PROJECT")
+	region := os.Getenv("FUNCTION_REGION")
+
+	return fmt.Sprintf("projects/%s/locations/%s/functions/%s", project, region, name)
 }
 
-func parseSecretReference(r string) (*SecretReference, error) {
-	if !strings.HasPrefix(r, "$SecretKeyRef:") {
-		return nil, errors.New("missing secret key reference prefix")
+func isReference(s string) bool {
+	if strings.HasPrefix(s, "$SecretKeyRef:") || strings.HasPrefix(s, "$ConfigMapKeyRef:") {
+		return true
+	}
+	return false
+}
+
+func parseReference(s string) (*Reference, error) {
+	var path string
+	var kind string
+
+	if strings.HasPrefix(s, "$ConfigMapKeyRef:") {
+		path = strings.TrimPrefix(s, "$ConfigMapKeyRef:")
+		kind = "configmap"
 	}
 
-	path := strings.TrimPrefix(r, "$SecretKeyRef:")
+	if strings.HasPrefix(s, "$SecretKeyRef:") {
+		path = strings.TrimPrefix(s, "$SecretKeyRef:")
+		kind = "secret"
+	}
 
 	u, err := url.Parse(path)
 	if err != nil {
@@ -219,19 +342,20 @@ func parseSecretReference(r string) (*SecretReference, error) {
 
 	var tempFile *os.File
 	if u.Query().Get("tempFile") != "" {
-		tempFile, err = ioutil.TempFile("", os.Getenv("K_SERVICE"))
+		tempFile, err = ioutil.TempFile("", "")
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	sr := &SecretReference{
+	r := &Reference{
 		Cluster:   strings.Join(ss[0:7], "/"),
 		Namespace: ss[8],
 		Name:      ss[10],
 		Key:       ss[12],
+		Kind:      kind,
 		TempFile:  tempFile,
 	}
 
-	return sr, nil
+	return r, nil
 }

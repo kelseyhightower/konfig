@@ -1,3 +1,7 @@
+// Copyright 2019 The Konfig Authors. All Rights Reserved.
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+
 package konfig
 
 import (
@@ -22,23 +26,22 @@ import (
 	"google.golang.org/api/container/v1"
 )
 
-type SecretReference struct {
+type Reference struct {
 	Cluster   string
 	Namespace string
 	Name      string
 	Key       string
 	TempFile  *os.File
-}
-
-type ConfigMapReference struct {
-	Cluster   string
-	Namespace string
-	Name      string
-	Key       string
-	TempFile  *os.File
+	Kind      string
 }
 
 type Secret struct {
+	ApiVersion string            `json:"apiVersion"`
+	Data       map[string]string `json:"data"`
+	Kind       string            `json:"kind"`
+}
+
+type ConfigMap struct {
 	ApiVersion string            `json:"apiVersion"`
 	Data       map[string]string `json:"data"`
 	Kind       string            `json:"kind"`
@@ -91,31 +94,31 @@ func parse() {
 
 	// Process the environment variable with secret references.
 	for k, v := range environmentVariables {
-		if !isSecretReference(v) {
+		if !isReference(v) {
 			continue
 		}
 
-		secretReference, err := parseSecretReference(v)
+		reference, err := parseReference(v)
 		if err != nil {
 			log.Println(err)
-			return
+			continue
 		}
 
-		cluster := strings.TrimPrefix(secretReference.Cluster, "/")
+		clusterID := strings.TrimPrefix(reference.Cluster, "/")
 
-		resp, err := containerService.Projects.Locations.Clusters.Get(cluster).Context(context.Background()).Do()
+		cluster, err := containerService.Projects.Locations.Clusters.Get(clusterID).Context(context.Background()).Do()
 		if err != nil {
 			log.Println(err)
-			return
+			continue
 		}
 
-		kUrl := fmt.Sprintf("https://%s/api/v1/namespaces/%s/secrets/%s/", resp.Endpoint,
-			secretReference.Namespace, secretReference.Name)
+		resourceURL := fmt.Sprintf("https://%s/api/v1/namespaces/%s/%ss/%s/", cluster.Endpoint,
+			reference.Namespace, reference.Kind, reference.Name)
 
-		caCert, err := base64.StdEncoding.DecodeString(resp.MasterAuth.ClusterCaCertificate)
+		caCert, err := base64.StdEncoding.DecodeString(cluster.MasterAuth.ClusterCaCertificate)
 		if err != nil {
 			log.Println(err)
-			return
+			continue
 		}
 
 		roots := x509.NewCertPool()
@@ -132,7 +135,7 @@ func parse() {
 		ts, err := google.DefaultTokenSource(context.TODO(), "https://www.googleapis.com/auth/cloud-platform")
 		if err != nil {
 			log.Println(err)
-			return
+			continue
 		}
 
 		oauthTransport := &oauth2.Transport{
@@ -142,53 +145,76 @@ func parse() {
 
 		kubernetesClient := &http.Client{Transport: oauthTransport}
 
-		kResp, err := kubernetesClient.Get(kUrl)
-		data, err := ioutil.ReadAll(kResp.Body)
+		resp, err := kubernetesClient.Get(resourceURL)
 		if err != nil {
 			log.Println(err)
-			return
-		}
-
-		defer kResp.Body.Close()
-
-		if kResp.StatusCode != 200 {
-			log.Printf("kconfig: unable to get secret %s from Kubernetes status code %v", k, kResp.StatusCode)
 			continue
 		}
 
-		var secret Secret
-		err = json.Unmarshal(data, &secret)
+		data, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
 			log.Println(err)
-			return
+			continue
 		}
 
-		envData, err := base64.StdEncoding.DecodeString(secret.Data[secretReference.Key])
-		if err != nil {
-			log.Println(err)
-			return
+		defer resp.Body.Close()
+
+		if resp.StatusCode != 200 {
+			log.Printf("kconfig: unable to get %s %s from Kubernetes status code %v",
+				k, reference.Kind, resp.StatusCode)
+			continue
 		}
 
-		if secretReference.TempFile != nil {
-			err = secretReference.TempFile.Chmod(600)
+		var envData string
+
+		if reference.Kind == "secret" {
+			var secret Secret
+			err := json.Unmarshal(data, &secret)
 			if err != nil {
 				log.Println(err)
-				return
+				continue
 			}
 
-			_, err = secretReference.TempFile.Write(envData)
+			d, err := base64.StdEncoding.DecodeString(secret.Data[reference.Key])
 			if err != nil {
 				log.Println(err)
-				return
+				continue
 			}
+			envData = string(d)
+		}
 
-			err = secretReference.TempFile.Close()
+		if reference.Kind == "configmap" {
+			var configmap ConfigMap
+
+			err := json.Unmarshal(data, &configmap)
 			if err != nil {
 				log.Println(err)
-				return
+				continue
 			}
 
-			os.Setenv(k, secretReference.TempFile.Name())
+			envData = configmap.Data[reference.Key]
+		}
+
+		if reference.TempFile != nil {
+			err = reference.TempFile.Chmod(600)
+			if err != nil {
+				log.Println(err)
+				continue
+			}
+
+			_, err = reference.TempFile.WriteString(envData)
+			if err != nil {
+				log.Println(err)
+				continue
+			}
+
+			err = reference.TempFile.Close()
+			if err != nil {
+				log.Println(err)
+				continue
+			}
+
+			os.Setenv(k, reference.TempFile.Name())
 
 			continue
 		}
@@ -286,19 +312,26 @@ func functionName() string {
 	return fmt.Sprintf("projects/%s/locations/%s/functions/%s", project, region, name)
 }
 
-func isSecretReference(s string) bool {
-	if !strings.HasPrefix(s, "$SecretKeyRef:") {
-		return false
+func isReference(s string) bool {
+	if strings.HasPrefix(s, "$SecretKeyRef:") || strings.HasPrefix(s, "$ConfigMapKeyRef:") {
+		return true
 	}
-	return true
+	return false
 }
 
-func parseSecretReference(r string) (*SecretReference, error) {
-	if !strings.HasPrefix(r, "$SecretKeyRef:") {
-		return nil, errors.New("missing secret key reference prefix")
+func parseReference(s string) (*Reference, error) {
+	var path string
+	var kind string
+
+	if strings.HasPrefix(s, "$ConfigMapKeyRef:") {
+		path = strings.TrimPrefix(s, "$ConfigMapKeyRef:")
+		kind = "configmap"
 	}
 
-	path := strings.TrimPrefix(r, "$SecretKeyRef:")
+	if strings.HasPrefix(s, "$SecretKeyRef:") {
+		path = strings.TrimPrefix(s, "$SecretKeyRef:")
+		kind = "secret"
+	}
 
 	u, err := url.Parse(path)
 	if err != nil {
@@ -315,13 +348,14 @@ func parseSecretReference(r string) (*SecretReference, error) {
 		}
 	}
 
-	sr := &SecretReference{
+	r := &Reference{
 		Cluster:   strings.Join(ss[0:7], "/"),
 		Namespace: ss[8],
 		Name:      ss[10],
 		Key:       ss[12],
+		Kind:      kind,
 		TempFile:  tempFile,
 	}
 
-	return sr, nil
+	return r, nil
 }
