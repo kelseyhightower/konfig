@@ -324,7 +324,7 @@ func parseReference(s string) (*Reference, error) {
 	var kind string
 
 	if strings.HasPrefix(s, "$ConfigMapKeyRef:") {
-		path = strings.TrimPrefix(s, "$ConfigMapRef:")
+		path = strings.TrimPrefix(s, "$ConfigMapKeyRef")
 		kind = "configmap"
 	}
 
