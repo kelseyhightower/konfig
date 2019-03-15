@@ -61,7 +61,14 @@ kubectl create secret generic env \
   --from-file config.json
 ```
 
-At this point the `env` secret can be referenced from either Cloud Run or Cloud Functions using the `konfig` library.
+Create the `env` configmap with a single key `environment`:
+
+```
+kubectl create configmap env \
+  --from-literal environment=production
+```
+
+At this point the `env` secret and configmap can be referenced from either Cloud Run or Cloud Functions using the `konfig` library.
 
 ### Cloud Run Tutorial
 
@@ -107,29 +114,16 @@ ENV_SERVICE_URL=$(gcloud alpha run services describe env \
 Make an HTTP request to the `env` service:
 
 ```
-curl -i $ENV_SERVICE_URL
+curl $ENV_SERVICE_URL
 ```
 
 Output:
 ```
-HTTP/2 200
-config_file: /tmp/env116970659
-foo: bar
-google_cloud_project: hightowerlabs
-google_cloud_region: us-central1
-home: /home
-k_configuration: env
-k_revision: env-6aa1a472-5608-471b-a4cd-6b3a236c9e34
-k_service: env
-path: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-port: 8080
-content-type: text/plain; charset=utf-8
-x-cloud-trace-context: df0aec2bbdf0df373b1a0248969851d8;o=1
-date: Wed, 13 Mar 2019 18:53:40 GMT
-server: Google Frontend
-content-length: 79
-alt-svc: quic=":443"; ma=2592000; v="46,44,43,39"
+CONFIG_FILE: /tmp/363780357
+ENVIRONMENT: production
+FOO: bar
 
+# /tmp/363780357
 {
   "database": {
     "username": "user",
@@ -236,52 +230,11 @@ curl -i $HTTPS_TRIGGER_URL
 ```
 
 ```
-HTTP/2 200
-code_location: /srv
-config_file: /tmp/461942329
-content-type: text/plain; charset=utf-8
-debian_frontend: noninteractive
-entry_point: F
-foo: bar
-function-execution-id: i1hoszlw0o14
-function_identity: konfig@hightowerlabs.iam.gserviceaccount.com
-function_memory_mb: 128
-function_name: env
-function_region: us-central1
-function_timeout_sec: 30
-function_trigger_type: HTTP_TRIGGER
-gcloud_project: hightowerlabs
-gcp_project: hightowerlabs
-home: /root
-node_env: production
-path: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-port: 8080
-pwd: /srv/files/
-supervisor_hostname: 169.254.8.129
-supervisor_internal_port: 8081
-worker_port: 8091
-x_google_code_location: /srv
-x_google_container_logging_enabled: true
-x_google_entry_point: F
-x_google_function_identity: konfig@hightowerlabs.iam.gserviceaccount.com
-x_google_function_memory_mb: 128
-x_google_function_name: env
-x_google_function_region: us-central1
-x_google_function_timeout_sec: 30
-x_google_function_trigger_type: HTTP_TRIGGER
-x_google_function_version: 6
-x_google_gcloud_project: hightowerlabs
-x_google_gcp_project: hightowerlabs
-x_google_load_on_start: false
-x_google_supervisor_hostname: 169.254.8.129
-x_google_supervisor_internal_port: 8081
-x_google_worker_port: 8091
-x-cloud-trace-context: 55ddf3b7b5259783faa8113c8823d707;o=1
-date: Thu, 14 Mar 2019 14:30:51 GMT
-server: Google Frontend
-content-length: 79
-alt-svc: quic=":443"; ma=2592000; v="46,44,43,39"
+CONFIG_FILE: /tmp/813067742
+ENVIRONMENT: production
+FOO: bar
 
+# /tmp/813067742
 {
   "database": {
     "username": "user",

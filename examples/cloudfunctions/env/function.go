@@ -10,16 +10,14 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"strings"
 
 	_ "github.com/kelseyhightower/konfig"
 )
 
 func F(w http.ResponseWriter, r *http.Request) {
-	for _, e := range os.Environ() {
-		pair := strings.Split(e, "=")
-		w.Header().Set(pair[0], pair[1])
-	}
+	fmt.Fprintf(w, "CONFIG_FILE: %s\n", os.Getenv("CONFIG_FILE"))
+	fmt.Fprintf(w, "ENVIRONMENT: %s\n", os.Getenv("ENVIRONMENT"))
+	fmt.Fprintf(w, "FOO: %s\n\n", os.Getenv("FOO"))
 
 	data, err := ioutil.ReadFile(os.Getenv("CONFIG_FILE"))
 	if err != nil {
@@ -28,5 +26,6 @@ func F(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Fprintf(w, "  %s\n", data)
+	fmt.Fprintf(w, "# %s\n", os.Getenv("CONFIG_FILE"))
+	fmt.Fprintf(w, "%s\n", data)
 }
