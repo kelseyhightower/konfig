@@ -14,7 +14,7 @@ import (
 )
 ```
 
-At deployment time references to Kubernetes configmaps and secrets can be made when defining environment variables using the [reference syntax](docs/reference-syntax.md).
+References to Kubernetes configmaps and secrets can be made when defining Cloud Run and Cloud Functions environment variables using the [reference syntax](docs/reference-syntax.md).
 
 ## Tutorials
 
