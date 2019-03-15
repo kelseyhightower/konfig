@@ -1,6 +1,6 @@
 # konfig
 
-konfig enables Serverless workloads running on GCP to reference Kubernetes secrets stored in GKE clusters at runtime. konfig currently supports Cloud Run and Cloud Functions workloads.
+konfig enables serverless workloads running on GCP to reference Kubernetes configmaps and secrets stored in GKE clusters at runtime. konfig currently supports Cloud Run and Cloud Functions workloads.
 
 ## Usage
 
@@ -14,7 +14,7 @@ import (
 )
 ```
 
-At deployment time references to Kubernetes secrets can be made when defining environment variables using the [reference syntax](docs/reference-syntax.md).
+At deployment time references to Kubernetes configmaps and secrets can be made when defining environment variables using the [reference syntax](docs/reference-syntax.md).
 
 ## Tutorials
 
@@ -206,12 +206,12 @@ cd examples/cloudfunctions/env/
 ```
 gcloud alpha functions deploy env \
   --entry-point F \
-  --service-account $SERVICE_ACCOUNT_EMAIL \
-  --set-env-vars "FOO=\$SecretKeyRef:${CLUSTER_ID}/namespaces/default/secrets/env/keys/foo,CONFIG_FILE=\$SecretKeyRef:${CLUSTER_ID}/namespaces/default/secrets/env/keys/config.json?tempFile=true" \
   --max-instances 10 \
   --memory 128MB \
   --region us-central1 \
   --runtime go111 \
+  --service-account $SERVICE_ACCOUNT_EMAIL \
+  --set-env-vars "FOO=\$SecretKeyRef:${CLUSTER_ID}/namespaces/default/secrets/env/keys/foo,CONFIG_FILE=\$SecretKeyRef:${CLUSTER_ID}/namespaces/default/secrets/env/keys/config.json?tempFile=true,ENVIRONMENT=\$ConfigMapKeyRef:${CLUSTER_ID}/namespaces/default/configmaps/env/keys/environment" \
   --timeout 30s \
   --trigger-http
 ```
@@ -228,7 +228,7 @@ HTTPS_TRIGGER_URL=$(gcloud beta functions describe env \
 ```
 
 ```
-curl -i $HTTPS_TRIGGER_URL
+curl $HTTPS_TRIGGER_URL
 ```
 
 ```
