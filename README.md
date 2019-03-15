@@ -72,9 +72,9 @@ At this point the `env` secret and configmap can be referenced from either Cloud
 
 ### Cloud Run Tutorial
 
-In this section Cloud Run will be used to deploy the `gcr.io/hightowerlabs/env:0.0.1` container image which responds to HTTP requests with the contents of the `FOO` and `CONFIG_FILE` environment variables, which reference the `env` secret created in the previous section.
+In this section Cloud Run will be used to deploy the `gcr.io/hightowerlabs/env:0.0.1` container image which responds to HTTP requests with the contents of the `ENVIRONMENT`, `FOO` and `CONFIG_FILE` environment variables, which reference the `env` secret and configmap created in the previous section.
 
-A GKE cluster ID is required when referencing secrets. Extract the cluster ID for the `k0` GKE cluster:
+A GKE cluster ID is required when referencing configmaps and secrets. Extract the cluster ID for the `k0` GKE cluster:
 
 ```
 CLUSTER_ID=$(gcloud container clusters describe k0 \
@@ -90,7 +90,7 @@ CLUSTER_ID=${CLUSTER_ID#"https://container.googleapis.com/v1"}
 
 > The CLUSTER_ID env var should hold the fully qualified path to the k0 cluster. Assuming `hightowerlabs` as the project ID the value would be `/projects/hightowerlabs/zones/us-central1-a/clusters/k0`.
 
-Create the `env` Cloud Run service and set the `FOO` and `CONFIG_FILE` env vars to reference the `env` secrets in the `k0` GKE cluster:
+Create the `env` Cloud Run service and set the `ENVIRONMENT`, `FOO` and `CONFIG_FILE` env vars to reference the `env` configmaps and secrets in the `k0` GKE cluster:
 
 ```
 gcloud alpha run deploy env \
@@ -101,6 +101,8 @@ gcloud alpha run deploy env \
   --region us-central1 \
   --set-env-vars "FOO=\$SecretKeyRef:${CLUSTER_ID}/namespaces/default/secrets/env/keys/foo,CONFIG_FILE=\$SecretKeyRef:${CLUSTER_ID}/namespaces/default/secrets/env/keys/config.json?tempFile=true,ENVIRONMENT=\$ConfigMapKeyRef:${CLUSTER_ID}/namespaces/default/configmaps/env/keys/environment"
 ```
+
+> The `CONFIG_FILE` env var reference uses the `tempFile` option to write the contents of the `config.json` secret key to a temp file. The `CONFIG_FILE` env var will hold the path to the temp file which can be read during normal program execution.
 
 Retreive the `env` service HTTP endpoint:
 
