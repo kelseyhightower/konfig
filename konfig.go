@@ -17,6 +17,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"runtime"
 	"strings"
 	"time"
 
@@ -57,6 +58,14 @@ const (
 
 const runEndpoint = "https://us-central1-run.googleapis.com/apis/serving.knative.dev/v1alpha1/%s"
 
+var (
+	projectName    = "konfig"
+	projectVersion = "0.1.0"
+	projectURL     = "https://github.com/kelseyhightower/konfig"
+	userAgent      = fmt.Sprintf("%s/%s (+%s; %s)",
+		projectName, projectVersion, projectURL, runtime.Version())
+)
+
 func init() {
 	parse()
 }
@@ -91,6 +100,7 @@ func parse() {
 		log.Println(err)
 		return
 	}
+	containerService.UserAgent = userAgent
 
 	// Process the environment variable with secret references.
 	for k, v := range environmentVariables {
@@ -257,6 +267,7 @@ func getCloudFunctionsEnvironmentVariables() (map[string]string, error) {
 	if err != nil {
 		return nil, err
 	}
+	client.UserAgent = userAgent
 
 	cloudFunction, err := client.Projects.Locations.Functions.Get(functionName()).Do()
 	if err != nil {
