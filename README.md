@@ -186,7 +186,7 @@ gcloud projects add-iam-policy-binding ${PROJECT_ID} \
   --role='roles/container.viewer'
 ```
 
-Enable the `konfig` GCP service account to access the `env` secret in the `k0` Kubernetes cluster:
+Enable the `konfig` GCP service account to access the `env` secret and configmap created in previous section:
 
 ```
 SERVICE_ACCOUNT_EMAIL="konfig@${PROJECT_ID}.iam.gserviceaccount.com"
