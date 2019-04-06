@@ -1,0 +1,25 @@
+#!/bin/bash
+
+PROJECT_ID=$(gcloud config get-value core/project)
+SERVICE_ACCOUNT_EMAIL="konfig@${PROJECT_ID}.iam.gserviceaccount.com"
+
+CLUSTER_ID=$(gcloud container clusters describe k0 \
+  --zone us-central1-a \
+  --format='value(selfLink)')
+
+CLUSTER_ID=${CLUSTER_ID#"https://container.googleapis.com/v1"}
+
+gcloud alpha functions deploy env \
+  --entry-point F \
+  --service-account $SERVICE_ACCOUNT_EMAIL \
+  --set-env-vars "FOO=\$SecretKeyRef:${CLUSTER_ID}/namespaces/default/secrets/env/keys/foo,CONFIG_FILE=\$SecretKeyRef:${CLUSTER_ID}/namespaces/default/secrets/env/keys/config.json?tempFile=true,ENVIRONMENT=\$ConfigMapKeyRef:${CLUSTER_ID}/namespaces/default/configmaps/env/keys/environment" \
+  --max-instances 10 \
+  --memory 128MB \
+  --region us-central1 \
+  --runtime go111 \
+  --timeout 30s \
+  --trigger-http
+
+gcloud alpha functions add-iam-policy-binding env \
+  --member allUsers \
+  --role roles/cloudfunctions.invoker

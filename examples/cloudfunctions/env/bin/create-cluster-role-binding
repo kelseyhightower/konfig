@@ -1,0 +1,14 @@
+!#/bin/bash
+
+PROJECT_ID=$(gcloud config get-value core/project)
+SERVICE_ACCOUNT_EMAIL="konfig@${PROJECT_ID}.iam.gserviceaccount.com"
+
+kubectl create role konfig \
+  --verb get \
+  --resource secrets \
+  --resource configmaps \
+  --resource-name env
+
+kubectl create rolebinding konfig \
+  --role konfig \
+  --user ${SERVICE_ACCOUNT_EMAIL}
