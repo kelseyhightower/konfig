@@ -191,7 +191,7 @@ gcloud projects add-iam-policy-binding ${PROJECT_ID} \
 gcloud projects add-iam-policy-binding ${PROJECT_ID} \
   --quiet \
   --member="serviceAccount:${SERVICE_ACCOUNT_NAME}@${PROJECT_ID}.iam.gserviceaccount.com" \
-  --role='roles/container.viewer'
+  --role='roles/container.developer'
 ```
 
 Enable the `konfig` GCP service account to access the `env` secret and configmap created in previous section:
