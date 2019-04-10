@@ -52,8 +52,11 @@ type RuntimeEnvironment string
 
 const (
 	CloudFunctionsRuntime = RuntimeEnvironment("cloudfunctions")
+	CloudRunRuntime       = RuntimeEnvironment("cloudrun")
 	UnknownRuntime        = RuntimeEnvironment("unknown")
 )
+
+const runEndpoint = "https://us-central1-run.googleapis.com/apis/serving.knative.dev/v1alpha1/%s"
 
 var (
 	projectName    = "konfig"
@@ -167,7 +170,7 @@ func parse() {
 		defer resp.Body.Close()
 
 		if resp.StatusCode != 200 {
-			log.Printf("konfig: unable to get %s %s from Kubernetes status code %v",
+			log.Printf("kconfig: unable to get %s %s from Kubernetes status code %v",
 				k, reference.Kind, resp.StatusCode)
 			continue
 		}
@@ -235,11 +238,17 @@ func detectRuntimeEnvironment() RuntimeEnvironment {
 		return CloudFunctionsRuntime
 	}
 
+	if os.Getenv("K_SERVICE") != "" {
+		return CloudRunRuntime
+	}
+
 	return UnknownRuntime
 }
 
 func getEnvironmentVariables(e RuntimeEnvironment) (map[string]string, error) {
 	switch e {
+	case CloudRunRuntime:
+		return getCloudRunEnvironmentVariables()
 	case CloudFunctionsRuntime:
 		return getCloudFunctionsEnvironmentVariables()
 	}
@@ -266,6 +275,44 @@ func getCloudFunctionsEnvironmentVariables() (map[string]string, error) {
 	}
 
 	return cloudFunction.EnvironmentVariables, nil
+}
+
+func getCloudRunEnvironmentVariables() (map[string]string, error) {
+	httpClient, err := google.DefaultClient(oauth2.NoContext,
+		"https://www.googleapis.com/auth/cloud-platform")
+	if err != nil {
+		return nil, err
+	}
+
+	runEndPointUrl := fmt.Sprintf(runEndpoint, serviceName())
+
+	resp, err := httpClient.Get(runEndPointUrl)
+	if err != nil {
+		return nil, err
+	}
+
+	data, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	var s Service
+	if err := json.Unmarshal(data, &s); err != nil {
+		return nil, err
+	}
+
+	environmentVariables := make(map[string]string)
+	for _, env := range s.Spec.RunLatest.Configuration.RevisionTemplate.Spec.Container.Env {
+		environmentVariables[env.Name] = env.Value
+	}
+
+	return environmentVariables, nil
+}
+
+func serviceName() string {
+	service := os.Getenv("K_SERVICE")
+	project := os.Getenv("GOOGLE_CLOUD_PROJECT")
+	return fmt.Sprintf("namespaces/%s/services/%s", project, service)
 }
 
 func functionName() string {

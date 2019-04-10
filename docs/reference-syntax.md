@@ -1,6 +1,6 @@
 # Reference Syntax
 
-References to Kubernetes configmaps and secrets can be made when defining Cloud Functions environment variables using the following syntax with a slight variance between regional and zonal GKE clusters.
+References to Kubernetes configmaps and secrets can be made when defining Cloud Run and Cloud Functions environment variables using the following syntax with a slight variance between regional and zonal GKE clusters.
 
 Regional GKE Clusters
 
