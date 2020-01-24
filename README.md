@@ -127,7 +127,7 @@ Retrieve the `env` service HTTP endpoint:
 ENV_SERVICE_URL=$(gcloud alpha run services describe env \
   --namespace hightowerlabs \
   --region us-central1 \
-  --format='value(status.domain)')
+  --format='value(status.url)')
 ```
 
 Make an HTTP request to the `env` service:
