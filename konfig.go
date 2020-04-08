@@ -56,7 +56,7 @@ const (
 	UnknownRuntime        = RuntimeEnvironment("unknown")
 )
 
-const runEndpoint = "https://us-central1-run.googleapis.com/apis/serving.knative.dev/v1alpha1/%s"
+const runEndpoint = "https://us-central1-run.googleapis.com/apis/serving.knative.dev/v1/%s"
 
 var (
 	projectName    = "konfig"
@@ -302,8 +302,10 @@ func getCloudRunEnvironmentVariables() (map[string]string, error) {
 	}
 
 	environmentVariables := make(map[string]string)
-	for _, env := range s.Spec.RunLatest.Configuration.RevisionTemplate.Spec.Container.Env {
-		environmentVariables[env.Name] = env.Value
+	for _, container := range s.Spec.RevisionTemplate.Spec.Containers {
+		for _, env := range container.Env {
+			environmentVariables[env.Name] = env.Value
+		}
 	}
 
 	return environmentVariables, nil
