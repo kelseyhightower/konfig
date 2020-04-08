@@ -9,15 +9,7 @@ type Service struct {
 }
 
 type ServiceSpec struct {
-	RunLatest RunLatest `json:"runLatest,omitempty"`
-}
-
-type RunLatest struct {
-	Configuration Configuration `json:"configuration,omitempty"`
-}
-
-type Configuration struct {
-	RevisionTemplate RevisionTemplate `json:"revisionTemplate"`
+	RevisionTemplate RevisionTemplate `json:"template,omitempty"`
 }
 
 type RevisionTemplate struct {
@@ -25,7 +17,7 @@ type RevisionTemplate struct {
 }
 
 type RevisionSpec struct {
-	Container Container `json:"container"`
+	Containers []Container `json:"containers"`
 }
 
 type Container struct {
