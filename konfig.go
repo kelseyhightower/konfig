@@ -56,7 +56,7 @@ const (
 	UnknownRuntime        = RuntimeEnvironment("unknown")
 )
 
-const runEndpoint = "https://us-central1-run.googleapis.com/apis/serving.knative.dev/v1alpha1/%s"
+const runEndpoint = "https://%s-run.googleapis.com/apis/serving.knative.dev/v1alpha1/%s"
 
 var (
 	projectName    = "konfig"
@@ -284,9 +284,7 @@ func getCloudRunEnvironmentVariables() (map[string]string, error) {
 		return nil, err
 	}
 
-	runEndPointUrl := fmt.Sprintf(runEndpoint, serviceName())
-
-	resp, err := httpClient.Get(runEndPointUrl)
+	resp, err := httpClient.Get(runEndPointUrl())
 	if err != nil {
 		return nil, err
 	}
@@ -307,6 +305,14 @@ func getCloudRunEnvironmentVariables() (map[string]string, error) {
 	}
 
 	return environmentVariables, nil
+}
+
+func runEndPointUrl() string {
+	region := os.Getenv("REGION")
+	if region == "" {
+		region = "us-central1"
+	}
+	return fmt.Sprintf(runEndpoint, region, serviceName())
 }
 
 func serviceName() string {
