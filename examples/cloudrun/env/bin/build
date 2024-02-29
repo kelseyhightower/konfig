@@ -1,3 +1,5 @@
 #!/bin/bash
 
-gcloud builds submit -t gcr.io/hightowerlabs/env:0.0.1 .
+PROJECT_ID=$(gcloud config list --format 'value(core.project)' 2>/dev/null)
+
+gcloud builds submit -t gcr.io/${PROJECT_ID}/env:0.0.1 .
